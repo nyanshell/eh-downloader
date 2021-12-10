@@ -97,7 +97,8 @@ def download_page(url, save_path, gecko_path, socks_proxy, cookies_file):
         links_dom = d.find_elements(By.XPATH, '/html/body//*[@class="gdtm"]')
         links = [l.find_element(By.TAG_NAME, 'a').get_attribute('href') for l in links_dom]
         # ignore first page
-        max_tab = int(d.find_elements(By.XPATH, '/html/body/div[7]/table/tbody/tr/td/a')[-2].text)
+        total_tabs = d.find_elements(By.XPATH, '/html/body/div[7]/table/tbody/tr/td/a')
+        max_tab = int(total_tabs[-2].text) if len(total_tabs) >= 2 else 1
         click.echo(f'total {max_tab} tabs in this doujinshi')
         for i in range(2, max_tab + 1):
             click.echo(f'loading tab {i}')
@@ -111,18 +112,16 @@ def download_page(url, save_path, gecko_path, socks_proxy, cookies_file):
         for i, l in enumerate(links):
             try:
                 download_url(d, l)
-                time.sleep(3.0)
             except NoSuchElementException:
                 click.echo(f"can't download {l}")
                 total_pages -= 1
 
-        while len(glob(os.path.join(save_dir, '*'))) < total_pages:
+        while len([f for f in glob(os.path.join(save_dir, '*')) if not f.endswith('.part')]) != total_pages:
             click.echo('waiting for download complete')
             time.sleep(3)
 
-        os.rename(save_dir, os.join(save_path, title))
+        os.rename(save_dir, os.path.join(save_path, title))
         click.echo(f'download complete, total {total_pages} images, exit.')
-        d.quit()
 
 
 @click.command()
